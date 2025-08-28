@@ -28,17 +28,17 @@ struct WorkoutsView: View {
         let cutoffDate =
             Calendar.current.date(byAdding: .hour, value: -selectedTimeframe.hours, to: Date())
             ?? Date()
-        
+
         print("🔴 WorkoutsView - AppState workouts: \(appState.recentWorkouts.count)")
         print("🔴 WorkoutsView - HealthKit workouts: \(healthKitManager.recentWorkouts.count)")
-        
+
         // Combine workouts from both AppState (API/manual) and HealthKitManager (local/mock)
         let allWorkouts = appState.recentWorkouts + healthKitManager.recentWorkouts
         print("🔴 WorkoutsView - Combined workouts: \(allWorkouts.count)")
-        
+
         let filtered = allWorkouts.filter { $0.startTime >= cutoffDate }
         print("🔴 WorkoutsView - Filtered workouts: \(filtered.count)")
-        
+
         return filtered
     }
 
@@ -102,8 +102,9 @@ struct WorkoutsView: View {
 
     private func loadWorkouts() {
         print("🔴 loadWorkouts called - HealthKit isAuthorized: \(healthKitManager.isAuthorized)")
-        print("🔴 loadWorkouts - Current HealthKit workouts: \(healthKitManager.recentWorkouts.count)")
-        
+        print(
+            "🔴 loadWorkouts - Current HealthKit workouts: \(healthKitManager.recentWorkouts.count)")
+
         // Skip API calls for guest users
         let isGuestUser = appState.isAuthenticated && appState.currentUser == nil
 

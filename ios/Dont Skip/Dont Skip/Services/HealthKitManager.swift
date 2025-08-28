@@ -31,7 +31,7 @@ class HealthKitManager: ObservableObject {
         DispatchQueue.main.async {
             self.isAuthorized = (authorizationStatus == .sharingAuthorized)
             if self.isAuthorized {
-                self.fetchRecentWorkouts()
+                self.fetchRecentWorkoutsWithSimulator()
             }
         }
         #endif
@@ -167,7 +167,7 @@ class HealthKitManager: ObservableObject {
                 self?.isAuthorized = success
                 if success {
                     self?.startObservingWorkouts()
-                    self?.fetchRecentWorkouts()
+                    self?.fetchRecentWorkoutsWithSimulator()
                 }
                 completion(success, error)
             }
@@ -242,7 +242,7 @@ class HealthKitManager: ObservableObject {
             
             // Fetch new workouts when changes are detected
             DispatchQueue.main.async {
-                self?.fetchRecentWorkouts()
+                self?.fetchRecentWorkoutsWithSimulator()
             }
         }
         

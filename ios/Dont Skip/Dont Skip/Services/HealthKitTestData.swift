@@ -20,15 +20,15 @@ struct MockHKWorkout {
 // MARK: - Test Data Provider
 class HealthKitTestData {
 
-    /// Evidence-based mock workouts matching real Apple Health data structure
+    /// Evidence-based mock workouts with realistic time distribution
     static func generateMockWorkouts() -> [MockHKWorkout] {
         let now = Date()
         let calendar = Calendar.current
 
         return [
-            // Morning walk (light movement) - 15 minutes -> 120 minutes coding
+            // TODAY - Morning walk (light movement) - 15 minutes -> 120 minutes coding
             MockHKWorkout(
-                id: "mock-walk-1",
+                id: "mock-walk-today",
                 workoutActivityType: .walking,
                 startDate: calendar.date(byAdding: .hour, value: -8, to: now)!,
                 endDate: calendar.date(
@@ -39,61 +39,61 @@ class HealthKitTestData {
                 totalDistance: 1200.0  // meters
             ),
 
-            // Bike commute (moderate cardio) - 25 minutes -> 300 minutes coding
+            // THIS WEEK - Bike commute (moderate cardio) - 30 minutes -> 360 minutes coding
             MockHKWorkout(
-                id: "mock-cycling-1",
+                id: "mock-cycling-week",
                 workoutActivityType: .cycling,
-                startDate: calendar.date(byAdding: .hour, value: -6, to: now)!,
+                startDate: calendar.date(byAdding: .day, value: -3, to: now)!,
                 endDate: calendar.date(
-                    byAdding: .hour, value: -6,
-                    to: calendar.date(byAdding: .minute, value: -25, to: now)!)!,
+                    byAdding: .day, value: -3,
+                    to: calendar.date(byAdding: .minute, value: -30, to: now)!)!,
                 duration: 30 * 60,  // 30 minutes
                 totalEnergyBurned: 220.0,  // calories
                 totalDistance: 8500.0  // meters
             ),
 
-            // Quick strength session - 20 minutes -> 300 minutes coding
+            // THIS MONTH - Strength session - 20 minutes -> 300 minutes coding
             MockHKWorkout(
-                id: "mock-strength-1",
+                id: "mock-strength-month",
                 workoutActivityType: .functionalStrengthTraining,
-                startDate: calendar.date(byAdding: .hour, value: -4, to: now)!,
+                startDate: calendar.date(byAdding: .day, value: -12, to: now)!,
                 endDate: calendar.date(
-                    byAdding: .hour, value: -4,
+                    byAdding: .day, value: -12,
                     to: calendar.date(byAdding: .minute, value: -20, to: now)!)!,
                 duration: 20 * 60,  // 20 minutes
                 totalEnergyBurned: 180.0,  // calories
                 totalDistance: nil
             ),
 
-            // Lunch run (cardio) - 25 minutes -> 300 minutes coding
+            // LAST MONTH - Long run (cardio) - 45 minutes -> 540 minutes coding
             MockHKWorkout(
-                id: "mock-run-1",
+                id: "mock-run-lastmonth",
                 workoutActivityType: .running,
-                startDate: calendar.date(byAdding: .hour, value: -2, to: now)!,
+                startDate: calendar.date(byAdding: .month, value: -1, to: now)!,
                 endDate: calendar.date(
-                    byAdding: .hour, value: -2,
-                    to: calendar.date(byAdding: .minute, value: -25, to: now)!)!,
-                duration: 25 * 60,  // 25 minutes
-                totalEnergyBurned: 280.0,  // calories
-                totalDistance: 4200.0  // meters
+                    byAdding: .month, value: -1,
+                    to: calendar.date(byAdding: .minute, value: -45, to: now)!)!,
+                duration: 45 * 60,  // 45 minutes
+                totalEnergyBurned: 420.0,  // calories
+                totalDistance: 7200.0  // meters
             ),
 
-            // Yoga session (light movement) - 10 minutes -> 100 minutes coding
+            // TWO MONTHS AGO - Yoga session (mindful movement) - 30 minutes -> 300 minutes coding
             MockHKWorkout(
-                id: "mock-yoga-1",
+                id: "mock-yoga-twomonths",
                 workoutActivityType: .yoga,
-                startDate: calendar.date(byAdding: .hour, value: -1, to: now)!,
+                startDate: calendar.date(byAdding: .month, value: -2, to: now)!,
                 endDate: calendar.date(
-                    byAdding: .hour, value: -1,
-                    to: calendar.date(byAdding: .minute, value: -10, to: now)!)!,
-                duration: 10 * 60,  // 10 minutes
-                totalEnergyBurned: 65.0,  // calories
+                    byAdding: .month, value: -2,
+                    to: calendar.date(byAdding: .minute, value: -30, to: now)!)!,
+                duration: 30 * 60,  // 30 minutes
+                totalEnergyBurned: 120.0,  // calories
                 totalDistance: nil
             ),
 
-            // HIIT session (high intensity) - 12 minutes -> 216 minutes coding
+            // TODAY - HIIT session (high intensity) - 12 minutes -> 216 minutes coding
             MockHKWorkout(
-                id: "mock-hiit-1",
+                id: "mock-hiit-today",
                 workoutActivityType: .highIntensityIntervalTraining,
                 startDate: calendar.date(byAdding: .minute, value: -30, to: now)!,
                 endDate: calendar.date(byAdding: .minute, value: -18, to: now)!,

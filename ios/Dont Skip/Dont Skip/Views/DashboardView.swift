@@ -115,7 +115,7 @@ struct DashboardView: View {
 
         // Fetch HealthKit workouts if authorized (this works offline for both guest and signed-in users)
         if healthKitManager.isAuthorized {
-            healthKitManager.fetchRecentWorkouts()
+            healthKitManager.fetchRecentWorkoutsWithSimulator()
         }
     }
 
@@ -270,7 +270,7 @@ struct QuickActionsCard: View {
                     color: Color(.systemBlue)
                 ) {
                     // Trigger sync for all connected integrations
-                    healthKitManager.fetchRecentWorkouts()
+                    healthKitManager.fetchRecentWorkoutsWithSimulator()
                     // Could also trigger API sync here
                 }
 

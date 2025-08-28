@@ -1,0 +1,54 @@
+version: "3.8"
+services:
+  mongodb:
+    image: mongo:7
+    container_name: dontskip-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: dontskip-dev-password
+      MONGO_INITDB_DATABASE: workout-lockout
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dontskip-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: dontskip-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass dontskip-redis-password
+    volumes:
+      - redis_data:/data
+    networks:
+      - dontskip-network
+
+  # Optional: MongoDB GUI
+  mongo-express:
+    image: mongo-express:latest
+    container_name: dontskip-mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: dontskip-dev-password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:dontskip-dev-password@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    depends_on:
+      - mongodb
+    networks:
+      - dontskip-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  dontskip-network:
+    driver: bridge

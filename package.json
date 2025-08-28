@@ -1,0 +1,148 @@
+{
+  "name": "dont-skip",
+  "displayName": "Don't Skip",
+  "description": "Your code runs better when you do - earn coding time through exercise",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dontSkip.recordWorkout",
+        "title": "Record Workout",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.viewCredits",
+        "title": "View Coding Credits",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.openSettings",
+        "title": "Open Settings",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.unlock",
+        "title": "Emergency Unlock (30 min)",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.resetForTesting",
+        "title": "Reset All Data (Testing)",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.manageIntegrations",
+        "title": "Manage Fitness Integrations",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.syncWorkouts",
+        "title": "Sync Recent Workouts",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.authenticate",
+        "title": "Sign In / Create Account",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.logout",
+        "title": "Logout",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.checkConnection",
+        "title": "Check Backend Connection",
+        "category": "Don't Skip"
+      }
+    ],
+    "configuration": {
+      "title": "Don't Skip",
+      "properties": {
+        "dontSkip.workoutTypes": {
+          "type": "array",
+          "default": [
+            {
+              "name": "Walking",
+              "minDuration": 15,
+              "codingHours": 2
+            },
+            {
+              "name": "Running",
+              "minDuration": 20,
+              "codingHours": 4
+            },
+            {
+              "name": "Cycling",
+              "minDuration": 25,
+              "codingHours": 5
+            },
+            {
+              "name": "Strength Training",
+              "minDuration": 20,
+              "codingHours": 5
+            },
+            {
+              "name": "HIIT",
+              "minDuration": 12,
+              "codingHours": 3.6
+            },
+            {
+              "name": "Yoga",
+              "minDuration": 15,
+              "codingHours": 2.5
+            }
+          ],
+          "description": "Define your workout types and coding time rewards (evidence-based ratios)"
+        },
+        "dontSkip.maxDailyCoding": {
+          "type": "number",
+          "default": 8,
+          "description": "Maximum coding hours per day"
+        },
+        "dontSkip.creditRolloverDays": {
+          "type": "number",
+          "default": 2,
+          "description": "How many days unused credits last"
+        },
+        "dontSkip.gracePeriodMinutes": {
+          "type": "number",
+          "default": 30,
+          "description": "Grace period for urgent fixes"
+        },
+        "dontSkip.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Backend API URL for workout synchronization"
+        },
+        "dontSkip.clearStateOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Clear all cached state on extension startup (for debugging)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test:profile": "bash ./tests/test-profile-management.sh",
+    "test:password": "bash ./tests/test-password-change.sh"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}

@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { CreditTransaction } from "../models/CreditTransaction";
 import { CreditService } from "../services/CreditService";
 import { authenticateToken } from "../middleware/auth";
+import { apiClientLimiter } from "../middleware/security";
 import { AuthRequest } from "../types";
 import logger from "../utils/simpleLogger";
 
@@ -11,6 +12,7 @@ const creditService = new CreditService();
 // Get current credit balance
 router.get(
   "/balance",
+  apiClientLimiter,
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
@@ -84,6 +86,7 @@ router.get(
 // Spend credits (for coding session)
 router.post(
   "/spend",
+  apiClientLimiter,
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
@@ -129,6 +132,7 @@ router.post(
 // Use emergency credits
 router.post(
   "/emergency",
+  apiClientLimiter,
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {

@@ -8,36 +8,66 @@ import logger from "../utils/simpleLogger";
 // Rate limiting configurations
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === "development" ? 1000 : 300, // Higher limit for development and API clients
   message: {
     success: false,
     error: "Too many requests, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // More lenient for VS Code extension
+  keyGenerator: (req) => {
+    const userAgent = req.get('User-Agent') || '';
+    if (userAgent.includes('VSCode-WorkoutLockout')) {
+      return `api-client:${req.ip}`;
+    }
+    return req.ip;
+  },
+  // Skip rate limiting for authenticated API clients in development
+  skip: (req) => {
+    if (process.env.NODE_ENV === "development") {
+      return false;
+    }
+    // More lenient for API clients
+    const userAgent = req.get('User-Agent') || '';
+    return userAgent.includes('VSCode-WorkoutLockout') && req.headers.authorization;
+  }
 });
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "development" ? 1000 : 5, // Higher limit for development
+  max: process.env.NODE_ENV === "development" ? 1000 : 20, // Higher limit for development and auth
   message: {
     success: false,
     error: "Too many authentication attempts, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: process.env.NODE_ENV === "development" ? () => false : undefined, // Don't skip in development, but use higher limit
 });
 
 export const syncLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // limit each IP to 10 sync requests per 5 minutes
+  max: 50, // Higher limit for sync operations
   message: {
     success: false,
     error: "Too many sync requests, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// API client limiter for authenticated requests (more lenient)
+export const apiClientLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Much higher limit for authenticated API clients
+  message: {
+    success: false,
+    error: "Too many API requests, please try again later",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Only apply to authenticated requests
+  skip: (req) => !req.headers.authorization,
 });
 
 // Security headers

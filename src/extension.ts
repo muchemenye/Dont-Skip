@@ -10,15 +10,16 @@ let workoutTracker: WorkoutTracker;
 let lockoutManager: LockoutManager;
 let backendApi: BackendApiService;
 let statusBarItem: vscode.StatusBarItem;
+let statusUpdateTimer: NodeJS.Timeout;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Workout Lockout extension is now active!");
 
   // Initialize services
   backendApi = new BackendApiService(context);
-  creditManager = new CreditManager(context, backendApi);
+  creditManager = new CreditManager(context, backendApi, updateStatusBar);
   workoutTracker = new WorkoutTracker(context, creditManager);
-  lockoutManager = new LockoutManager(context, creditManager);
+  lockoutManager = new LockoutManager(context, creditManager, updateStatusBar);
 
   // Create status bar item
   statusBarItem = vscode.window.createStatusBarItem(
@@ -179,6 +180,20 @@ async function initializeExtension(context: vscode.ExtensionContext) {
 
   // Always start with local functionality - no login required!
   await updateStatusBar();
+
+  // Start periodic status bar updates (every 30 seconds to reduce API calls)
+  statusUpdateTimer = setInterval(async () => {
+    await updateStatusBar();
+  }, 30000); // Increased from 10s to 30s
+
+  // Add to context for cleanup
+  context.subscriptions.push({
+    dispose: () => {
+      if (statusUpdateTimer) {
+        clearInterval(statusUpdateTimer);
+      }
+    }
+  });
 
   // Check if user has backend connection (optional)
   const isAuthenticated = await backendApi.isAuthenticated();

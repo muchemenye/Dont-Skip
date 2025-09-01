@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { User } from "../models/User";
 import { authenticateToken } from "../middleware/auth";
+import { apiClientLimiter } from "../middleware/security";
 import { AuthRequest } from "../types";
 import logger from "../utils/simpleLogger";
 
@@ -9,6 +10,7 @@ const router = Router();
 // Get user profile
 router.get(
   "/profile",
+  apiClientLimiter,
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {

@@ -21,16 +21,33 @@ export interface CodingCredit {
 export class CreditManager {
   private context: vscode.ExtensionContext;
   private credits: CodingCredit[] = [];
+  private pendingSpendMinutes: number = 0; // Track local usage not yet synced
+  private lastSyncTime: number = 0;
+  private syncTimer?: NodeJS.Timeout;
+  private onBalanceChange?: () => Promise<void>;
   public backendApi?: BackendApiService;
 
   constructor(
     context: vscode.ExtensionContext,
-    backendApi?: BackendApiService
+    backendApi?: BackendApiService,
+    onBalanceChange?: () => Promise<void>
   ) {
     this.context = context;
     this.backendApi = backendApi;
+    this.onBalanceChange = onBalanceChange;
     this.loadCredits();
     this.cleanupExpiredCredits();
+    
+    // Load pending spend amount
+    this.pendingSpendMinutes = this.context.globalState.get<number>("pendingSpendMinutes", 0);
+    
+    // Start periodic sync to backend
+    this.startPeriodicSync();
+    
+    // Cleanup on extension deactivation
+    context.subscriptions.push({
+      dispose: () => this.stopPeriodicSync()
+    });
   }
 
   private loadCredits(): void {
@@ -75,6 +92,11 @@ export class CreditManager {
     this.credits.push(credit);
     this.saveCredits();
 
+    // Notify about balance change
+    if (this.onBalanceChange) {
+      this.onBalanceChange().catch(console.error);
+    }
+
     vscode.window
       .showInformationMessage(
         `🎉 Workout completed! Earned ${workoutType.codingHours} hours of coding time`,
@@ -95,7 +117,10 @@ export class CreditManager {
         if (isAuthenticated) {
           const balance = await this.backendApi.getCreditBalance();
           if (balance) {
-            return balance.availableCredits / 60; // Convert minutes to hours
+            // Subtract any pending local usage that hasn't been synced yet
+            const backendMinutes = balance.availableCredits;
+            const adjustedMinutes = Math.max(0, backendMinutes - this.pendingSpendMinutes);
+            return adjustedMinutes / 60; // Convert minutes to hours
           }
         }
       } catch (error) {
@@ -113,33 +138,25 @@ export class CreditManager {
   async consumeHours(hours: number): Promise<boolean> {
     const minutes = Math.ceil(hours * 60);
 
-    // Try backend first (only if authenticated)
-    if (this.backendApi) {
-      try {
-        const isAuthenticated = await this.backendApi.isAuthenticated();
-        if (isAuthenticated) {
-          const success = await this.backendApi.spendCredits(minutes);
-          if (success) {
-            return true;
-          }
-        }
-      } catch (error) {
-        // Silently fall back to local credits
-      }
+    // Check if we have enough credits (including backend balance minus pending usage)
+    const availableHours = await this.getAvailableHours();
+    if (availableHours < hours) {
+      return false;
     }
 
-    // Fallback to local credits
+    // Track locally immediately for UI responsiveness
+    this.pendingSpendMinutes += minutes;
+    this.context.globalState.update("pendingSpendMinutes", this.pendingSpendMinutes);
+
+    // Also update local credits as fallback
     this.cleanupExpiredCredits();
-
     let remainingToConsume = hours;
-
     const sortedCredits = [...this.credits].sort(
       (a, b) => a.expiresAt.getTime() - b.expiresAt.getTime()
     );
 
     for (const credit of sortedCredits) {
       if (remainingToConsume <= 0) break;
-
       const availableInCredit = credit.codingHours - credit.usedHours;
       if (availableInCredit > 0) {
         const toConsume = Math.min(remainingToConsume, availableInCredit);
@@ -148,12 +165,66 @@ export class CreditManager {
       }
     }
 
-    if (remainingToConsume > 0) {
-      return false;
+    this.saveCredits();
+    
+    // Notify about balance change
+    if (this.onBalanceChange) {
+      this.onBalanceChange().catch(console.error);
+    }
+    
+    return true;
+  }
+
+  private startPeriodicSync(): void {
+    // Sync every 30 seconds
+    this.syncTimer = setInterval(() => {
+      this.syncToBackend();
+    }, 30000);
+  }
+
+  private stopPeriodicSync(): void {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = undefined;
+    }
+  }
+
+  private async syncToBackend(): Promise<void> {
+    // Only sync if we have pending changes and backend is available
+    if (this.pendingSpendMinutes <= 0 || !this.backendApi) {
+      return;
     }
 
-    this.saveCredits();
-    return true;
+    try {
+      const isAuthenticated = await this.backendApi.isAuthenticated();
+      if (!isAuthenticated) {
+        return;
+      }
+
+      const success = await this.backendApi.spendCredits(
+        this.pendingSpendMinutes, 
+        "VS Code session (batched)"
+      );
+      
+      if (success) {
+        // Clear pending usage on successful sync
+        this.pendingSpendMinutes = 0;
+        this.context.globalState.update("pendingSpendMinutes", 0);
+        console.log(`Synced pending usage to backend`);
+        
+        // Notify about balance change after sync
+        if (this.onBalanceChange) {
+          this.onBalanceChange().catch(console.error);
+        }
+      }
+    } catch (error) {
+      console.log("Failed to sync pending usage to backend:", error);
+      // Keep pending usage for next sync attempt
+    }
+  }
+
+  dispose(): void {
+    this.stopPeriodicSync();
   }
 
   async showCreditsStatus(): Promise<void> {

@@ -44,6 +44,10 @@ export class BackendApiService {
   private context: vscode.ExtensionContext;
   private baseUrl: string;
   private deviceId: string;
+  
+  // Cache for API responses to reduce duplicate calls
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly CACHE_DURATION = 15000; // 15 seconds cache
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -81,6 +85,35 @@ export class BackendApiService {
       .substring(0, 8);
 
     return `vscode_${timestamp}_${randomBytes}_${machineId}`;
+  }
+
+  // Cache management methods
+  private getCacheKey(endpoint: string, params?: any): string {
+    return `${endpoint}_${params ? JSON.stringify(params) : ''}`;
+  }
+
+  private getCachedData(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (!cached) return null;
+    
+    const isExpired = Date.now() - cached.timestamp > this.CACHE_DURATION;
+    if (isExpired) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return cached.data;
+  }
+
+  private setCachedData(key: string, data: any): void {
+    this.cache.set(key, {
+      data: data,
+      timestamp: Date.now()
+    });
+  }
+
+  private clearCache(): void {
+    this.cache.clear();
   }
 
   private async makeRequest<T>(
@@ -344,6 +377,9 @@ export class BackendApiService {
   }
 
   private async secureLogout(): Promise<void> {
+    // Clear all cached data on logout
+    this.cache.clear();
+    
     // SECURITY: Comprehensive cleanup of all auth-related data
     const keysToClear = [
       "authToken",
@@ -404,12 +440,24 @@ export class BackendApiService {
   }
 
   async isAuthenticated(): Promise<boolean> {
+    const cacheKey = this.getCacheKey('auth_check');
+    
+    // Check cache first (shorter cache for auth checks - 10 seconds)
+    const cached = this.getCachedData(cacheKey, 10000);
+    if (cached !== null) {
+      return cached;
+    }
+
     const token = await this.getAuthToken();
-    if (!token) return false;
+    if (!token) {
+      this.setCachedData(cacheKey, false);
+      return false;
+    }
 
     // SECURITY: Check session validity first
     if (!(await this.isSessionValid())) {
       await this.secureLogout();
+      this.setCachedData(cacheKey, false);
       return false;
     }
 
@@ -418,13 +466,16 @@ export class BackendApiService {
       if (response.success) {
         // Update last activity timestamp
         await this.context.globalState.update("authTimestamp", Date.now());
+        this.setCachedData(cacheKey, true);
         return true;
       }
+      this.setCachedData(cacheKey, false);
       return false;
     } catch (error) {
       // If there's any error (network, auth, etc.), consider not authenticated
       console.log("Authentication check failed - clearing session");
       await this.secureLogout();
+      this.setCachedData(cacheKey, false);
       return false;
     }
   }
@@ -486,8 +537,23 @@ export class BackendApiService {
 
   // Credit methods
   async getCreditBalance(): Promise<CreditBalance | null> {
+    const cacheKey = this.getCacheKey('/credits/balance');
+    
+    // Check cache first
+    const cached = this.getCachedData(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    
     const response = await this.makeRequest<CreditBalance>("/credits/balance");
-    return response.success && response.data ? response.data : null;
+    const result = response.success && response.data ? response.data : null;
+    
+    // Cache the result if successful
+    if (result) {
+      this.setCachedData(cacheKey, result);
+    }
+    
+    return result;
   }
 
   async spendCredits(
@@ -498,6 +564,11 @@ export class BackendApiService {
       method: "POST",
       body: { minutes, reason },
     });
+
+    // Clear cache after spending credits to ensure fresh data
+    if (response.success) {
+      this.cache.delete(this.getCacheKey('/credits/balance'));
+    }
 
     return response.success;
   }
@@ -583,8 +654,18 @@ export class BackendApiService {
 
   // Get user profile
   async getUserProfile(): Promise<any> {
+    const cacheKey = this.getCacheKey('/user/profile');
+    
+    // Check cache first
+    const cached = this.getCachedData(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    
     const response = await this.makeRequest("/user/profile");
     if (response.success) {
+      // Cache the result
+      this.setCachedData(cacheKey, response.data);
       return response.data;
     }
     throw new Error(response.error || "Failed to get user profile");

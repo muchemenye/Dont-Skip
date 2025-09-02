@@ -3,3 +3,42 @@ node_modules
 .vscode-test/
 *.vsix
 .DS_Store
+
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.development
+.env.production
+backend/.env
+backend/.env.local
+backend/.env.development
+backend/.env.production
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity

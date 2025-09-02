@@ -7,7 +7,7 @@ export class LockoutManager {
   private updateStatusBar?: () => Promise<void>;
   private sessionStartTime: Date | null = null;
   private lastCreditConsumption: Date | null = null;
-  private isLocked = false;
+  public isLocked = false;
   private checkInterval: NodeJS.Timeout | null = null;
   private consumptionInterval: NodeJS.Timeout | null = null;
   private documentChangeListener: vscode.Disposable | null = null;
@@ -17,7 +17,7 @@ export class LockoutManager {
   private isVSCodeFocused = true; // Assume focused on startup
 
   constructor(
-    context: vscode.ExtensionContext, 
+    context: vscode.ExtensionContext,
     creditManager: CreditManager,
     updateStatusBar?: () => Promise<void>
   ) {
@@ -30,7 +30,9 @@ export class LockoutManager {
     // Start coding session immediately when monitoring begins
     this.sessionStartTime = new Date();
     this.lastCreditConsumption = new Date();
-    console.log("LockoutManager: Started monitoring - focus-based time tracking active");
+    console.log(
+      "LockoutManager: Started monitoring - focus-based time tracking active"
+    );
 
     // Check every 10 seconds for more responsive countdown
     this.checkInterval = setInterval(() => {
@@ -45,8 +47,12 @@ export class LockoutManager {
     // Listen for window state changes to track focus
     this.windowStateListener = vscode.window.onDidChangeWindowState((state) => {
       this.isVSCodeFocused = state.focused;
-      console.log(`LockoutManager: VS Code focus changed: ${state.focused ? 'FOCUSED' : 'UNFOCUSED'}`);
-      
+      console.log(
+        `LockoutManager: VS Code focus changed: ${
+          state.focused ? "FOCUSED" : "UNFOCUSED"
+        }`
+      );
+
       if (state.focused && !this.sessionStartTime) {
         // Resume session when VS Code regains focus
         this.sessionStartTime = new Date();
@@ -55,7 +61,7 @@ export class LockoutManager {
       }
     });
 
-    // Listen for document changes to track active coding (optional activity indicator)
+    // Listen for document changes to track active coding and block when locked
     this.documentChangeListener = vscode.workspace.onDidChangeTextDocument(
       (event) => {
         if (event.document.uri.scheme === "file") {
@@ -79,6 +85,12 @@ export class LockoutManager {
     event: vscode.TextDocumentChangeEvent
   ): Promise<void> {
     if (this.isLocked) {
+      // BLOCK EDITS: Undo the changes immediately when locked
+      const editor = vscode.window.activeTextEditor;
+      if (editor && editor.document === event.document) {
+        await vscode.commands.executeCommand("undo");
+        this.showLockoutMessage();
+      }
       return;
     }
 
@@ -101,11 +113,15 @@ export class LockoutManager {
 
     // Check if VS Code is currently the focused application
     if (!this.isVSCodeFocused) {
-      console.log("LockoutManager: VS Code not focused, pausing credit consumption");
+      console.log(
+        "LockoutManager: VS Code not focused, pausing credit consumption"
+      );
       return;
     }
 
-    console.log("LockoutManager: Consuming 1 minute of credits (VS Code focused time-based)");
+    console.log(
+      "LockoutManager: Consuming 1 minute of credits (VS Code focused time-based)"
+    );
 
     // Add 1 minute of coding time
     this.creditManager.addTodaysCodingTime(1);
@@ -129,7 +145,11 @@ export class LockoutManager {
     const availableHours = await this.creditManager.getAvailableHours();
     const canCodeToday = this.creditManager.canCodeToday();
 
-    console.log(`LockoutManager: Available hours after consumption: ${availableHours.toFixed(2)}`);
+    console.log(
+      `LockoutManager: Available hours after consumption: ${availableHours.toFixed(
+        2
+      )}`
+    );
 
     if (availableHours <= 0 || !canCodeToday) {
       this.lockEditor();
@@ -153,7 +173,7 @@ export class LockoutManager {
     if (!this.sessionStartTime) {
       return false;
     }
-    
+
     // Session is active if VS Code is focused and not locked
     return this.isVSCodeFocused && !this.isLocked;
   }
@@ -180,7 +200,13 @@ export class LockoutManager {
 
   private lockEditor(): void {
     this.isLocked = true;
+    console.log("🔒 LOCKOUT ACTIVATED - Editor is now locked!");
     this.showLockoutMessage();
+
+    // Show persistent warning in status bar
+    if (this.updateStatusBar) {
+      this.updateStatusBar();
+    }
   }
 
   private unlockEditor(): void {

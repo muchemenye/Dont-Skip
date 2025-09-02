@@ -3,6 +3,7 @@
   "displayName": "Don't Skip",
   "description": "Your code runs better when you do - earn coding time through exercise",
   "version": "0.1.0",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -63,6 +64,11 @@
       {
         "command": "dontSkip.checkConnection",
         "title": "Check Backend Connection",
+        "category": "Don't Skip"
+      },
+      {
+        "command": "dontSkip.debugLockout",
+        "title": "Debug Lockout Status",
         "category": "Don't Skip"
       }
     ],

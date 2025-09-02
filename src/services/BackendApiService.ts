@@ -44,7 +44,7 @@ export class BackendApiService {
   private context: vscode.ExtensionContext;
   private baseUrl: string;
   private deviceId: string;
-  
+
   // Cache for API responses to reduce duplicate calls
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 15000; // 15 seconds cache
@@ -89,26 +89,26 @@ export class BackendApiService {
 
   // Cache management methods
   private getCacheKey(endpoint: string, params?: any): string {
-    return `${endpoint}_${params ? JSON.stringify(params) : ''}`;
+    return `${endpoint}_${params ? JSON.stringify(params) : ""}`;
   }
 
   private getCachedData(key: string): any | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
-    
+
     const isExpired = Date.now() - cached.timestamp > this.CACHE_DURATION;
     if (isExpired) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return cached.data;
   }
 
   private setCachedData(key: string, data: any): void {
     this.cache.set(key, {
       data: data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -379,7 +379,7 @@ export class BackendApiService {
   private async secureLogout(): Promise<void> {
     // Clear all cached data on logout
     this.cache.clear();
-    
+
     // SECURITY: Comprehensive cleanup of all auth-related data
     const keysToClear = [
       "authToken",
@@ -440,10 +440,10 @@ export class BackendApiService {
   }
 
   async isAuthenticated(): Promise<boolean> {
-    const cacheKey = this.getCacheKey('auth_check');
-    
-    // Check cache first (shorter cache for auth checks - 10 seconds)
-    const cached = this.getCachedData(cacheKey, 10000);
+    const cacheKey = this.getCacheKey("auth_check");
+
+    // Check cache first (shorter cache for auth checks)
+    const cached = this.getCachedData(cacheKey);
     if (cached !== null) {
       return cached;
     }
@@ -537,22 +537,22 @@ export class BackendApiService {
 
   // Credit methods
   async getCreditBalance(): Promise<CreditBalance | null> {
-    const cacheKey = this.getCacheKey('/credits/balance');
-    
+    const cacheKey = this.getCacheKey("/credits/balance");
+
     // Check cache first
     const cached = this.getCachedData(cacheKey);
     if (cached) {
       return cached;
     }
-    
+
     const response = await this.makeRequest<CreditBalance>("/credits/balance");
     const result = response.success && response.data ? response.data : null;
-    
+
     // Cache the result if successful
     if (result) {
       this.setCachedData(cacheKey, result);
     }
-    
+
     return result;
   }
 
@@ -567,7 +567,7 @@ export class BackendApiService {
 
     // Clear cache after spending credits to ensure fresh data
     if (response.success) {
-      this.cache.delete(this.getCacheKey('/credits/balance'));
+      this.cache.delete(this.getCacheKey("/credits/balance"));
     }
 
     return response.success;
@@ -654,14 +654,14 @@ export class BackendApiService {
 
   // Get user profile
   async getUserProfile(): Promise<any> {
-    const cacheKey = this.getCacheKey('/user/profile');
-    
+    const cacheKey = this.getCacheKey("/user/profile");
+
     // Check cache first
     const cached = this.getCachedData(cacheKey);
     if (cached) {
       return cached;
     }
-    
+
     const response = await this.makeRequest("/user/profile");
     if (response.success) {
       // Cache the result

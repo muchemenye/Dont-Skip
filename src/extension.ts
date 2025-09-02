@@ -144,6 +144,23 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  const debugLockout = vscode.commands.registerCommand(
+    "dontSkip.debugLockout",
+    async () => {
+      const availableHours = await creditManager.getAvailableHours();
+      const canCodeToday = creditManager.canCodeToday();
+      const isLocked = lockoutManager.isLocked;
+
+      vscode.window.showInformationMessage(
+        `🔍 Debug Info:\n` +
+          `Available Hours: ${availableHours.toFixed(2)}\n` +
+          `Can Code Today: ${canCodeToday}\n` +
+          `Is Locked: ${isLocked}\n` +
+          `Session Active: ${lockoutManager.isSessionActive()}`
+      );
+    }
+  );
+
   // Start monitoring
   lockoutManager.startMonitoring();
 
@@ -158,7 +175,8 @@ export function activate(context: vscode.ExtensionContext) {
     syncWorkouts,
     authenticate,
     logout,
-    checkConnection
+    checkConnection,
+    debugLockout
   );
 }
 
@@ -192,7 +210,7 @@ async function initializeExtension(context: vscode.ExtensionContext) {
       if (statusUpdateTimer) {
         clearInterval(statusUpdateTimer);
       }
-    }
+    },
   });
 
   // Check if user has backend connection (optional)
@@ -570,6 +588,17 @@ async function showConnectedApps(integrations: any[]): Promise<void> {
 
 async function updateStatusBar(): Promise<void> {
   try {
+    // Check if locked first
+    if (lockoutManager && lockoutManager.isLocked) {
+      statusBarItem.text = "🔒 LOCKED";
+      statusBarItem.tooltip = "Editor is locked - Record a workout to unlock!";
+      statusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.errorBackground"
+      );
+      statusBarItem.show();
+      return;
+    }
+
     // Always show credits - try backend first, then local
     const availableHours = await creditManager.getAvailableHours();
     const availableMinutes = Math.ceil(availableHours * 60);
@@ -577,7 +606,22 @@ async function updateStatusBar(): Promise<void> {
     // Check if using backend sync
     const isAuthenticated = await backendApi.isAuthenticated();
 
-    if (isAuthenticated) {
+    // Clear any error background
+    statusBarItem.backgroundColor = undefined;
+
+    if (availableMinutes <= 0) {
+      statusBarItem.text = "🔒 No Credits";
+      statusBarItem.tooltip = "No coding credits available - Record a workout!";
+      statusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.warningBackground"
+      );
+    } else if (availableMinutes < 60) {
+      statusBarItem.text = `⚠️ ${availableMinutes}min`;
+      statusBarItem.tooltip = `Low credits: ${availableMinutes} min remaining`;
+      statusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.warningBackground"
+      );
+    } else if (isAuthenticated) {
       statusBarItem.text = `💪 ${availableMinutes}min`;
       statusBarItem.tooltip = `Workout Lockout (Cloud Sync)\nAvailable: ${availableMinutes} min\nClick to view details`;
     } else {
@@ -589,6 +633,9 @@ async function updateStatusBar(): Promise<void> {
   } catch (error) {
     statusBarItem.text = "💪 0min";
     statusBarItem.tooltip = "Workout Lockout - Click to record workout";
+    statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground"
+    );
     statusBarItem.show();
   }
 }
